@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+<div id= "whole" >
+	<div id= "header" style="background:#C6DEFF;border: solid darkgray;" >
+		<h1> Staying at Hampton roads?? Following stats may help you choose</h1>
+		
+	</div>
+	<div id="tabs">
+			<ul >
+				<li><a href="#" id="life" class="selected" onclick= "initgraph(this)" > Standard of living </a></li>
+				<li><a href="#" id="crime"  onclick= "initgraph(this)" > crime statistics </a></li>
+				<li><a href="#" id="traffic" onclick= "initgraph(this)"	> Traffic statistics </a></li>	
+			</ul>
+
+	<div id="map1" style="background: #C6DEFF;width:40%;height:640px;float:left;display:none; border: solid darkgray; margin:5px;">
+	</div>
+	<div id="rightside" style="width:30%;height:640px;float:left;  margin:5px;">
+		<div id="rightpart1" style="height:200px;display:none; margin:5px;">
+			<center><h3> </h3></center>
+		</div>
+		<div id="rightpart2" style="height:200px;display:none; margin:5px;">
+			<center><h3> </h3></center>
+		</div>
+		<div id="rightpart3" style="height:200px;display:none; margin:5px;">
+			<center><h3> </h3></center>
+		</div>
+		<div id="rightpart4" style="height:200px;display:none; margin:5px;">
+			<center><h3> </h3></center>
+		</div>
+	</div>
+			</div>
+</div>
+<script src="libs/d3.v2.js"></script>
+<script src="libs/d3.v3.min.js"></script>
+<script src="libs/topojson.v0.min.js"></script>
+<script type="text/javascript" src="colorbrewer.js"></script>
+<script>
+
+/* JavaScript goes here. */
+/* global variables */
+var tempzip;
+var crimecolor = d3.scale.linear()
+				.domain([15,2])
+				.range(colorbrewer.RdBu[4]);
+				
+var trafficcolor = d3.scale.linear()
+				.domain([40,16])
+				.range(colorbrewer.RdBu[4]);
+				
+var qolcolor = d3.scale.linear()
+				.domain([3,1.5])
+				.range(colorbrewer.RdBu[4]);
+								
+var tooltip = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);				
+	
+var colorScale = d3.scale.category10();
+var width =600, height = 600;
+var zipcount = 0;
+var w1 = 700;
+var h1 = 200;
+var barPadding = 1;
+var trafficrate = new Object();
+var crimerate = new Object();
+var qolavg = new Object();
+
+var svg = d3.select("#map1").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+	
+
+var projection = d3.geo.albers()
+	.center([0,37])
+	.rotate([76.45,0.05])
+	.parallels([35, 32])
+	.scale(40000)
+	.translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+	.projection(projection)
+	.pointRadius(2);
+	
+var uniquezipcodesloaded = false;
+var crimecsvloaded = false;
+var NewdataLIHRloaded = false;
+
+
+/* end of global values */
+Init();
+
+function isHexaColor(sNum){ //function checks if color is valid
+  return (typeof sNum === "string") && sNum.length === 6 
+         && ! isNaN( parseInt(sNum, 16) );
+}
+
+function loadunQZip() {	 // function laod uniq zip codes into zipcodes & crimeramte object		
+	d3.csv("uniqueZipCodes.csv", function (csv) { 
+	//console.log(csv);
+	csv.forEach(function(d) {
+					if(d["User_ZIP"]!="") {
+						//zipcodes.zip = 'd["User_ZIP"]';
+						trafficrate[d["User_ZIP"]] = 'junk';
+						crimerate[d["User_ZIP"]] = 'junk';
+						qolavg[d["User_ZIP"]] = 'junk';
+						zipcount++;
+					}				
+					
+				});
+				uniquezipcodesloaded = true;	
+	});
+	
+}
+
+function loadValuesIntoCrimeRate() { //loads values into crimerates object for each zip
+	d3.csv("crimeandtraffic.csv",function(csv)
+	{
+		
+		for( var key in crimerate)
+		{
+		yescount =0;
+		totalcount = 0;
+			csv.forEach(function(d) 
+			{
+				if(parseFloat(key) == parseFloat(d["Zip"]))
+				{
+					totalcount++;
+					if(d["Q46"] == 1)
+					{
+						yescount++;
+					}
+					
+				}
+			
+			});
+			if(key == 23562) // removed as it has only one value
+			continue;
+			if(yescount)
+			crimerate[key] = (yescount/totalcount)*100;
+			else
+			crimerate[key] =0;
+			//console.log ( key + " -> "+ crimerate[key]);
+		}
+		crimecsvloaded = true;
+	});
+	
+}
+
+function loadValuesIntoqolavg() { //loads values into qolavg object for each zip
+	d3.csv("crimeandtraffic.csv",function(csv)
+	{
+		
+		for( var key in qolavg)
+		{
+		
+			var sum=0;
+			var avg =0;
+			var count =0;
+			csv.forEach(function(d) 
+			{
+				if(parseFloat(key) == parseFloat(d["Zip"]))
+				{
+					if(d["Q37"] != "")
+					{
+						sum= sum + parseFloat(d["Q37"]);
+						count++;
+					}
+					
+				}
+			
+			});
+			avg = sum / count;
+			qolavg[key] = avg;		
+			console.log ( key + " -> "+ qolavg[key]  );
+		}
+		crimecsvloaded = true;
+					
+		
+	});
+	
+}
+
+function loadValuesIntoZipCodes()  { //loades values into zipcodes object
+	d3.csv("New_data_LIHR.csv",function(csv)
+	{
+		var sumavg=0;
+		for( var key in trafficrate)
+		{
+			var sum=0;
+			var avg =0;
+			var count =0;
+			csv.forEach(function(d) 
+			{
+				if(parseFloat(key) == parseFloat(d["ZipCode"]))
+				{
+					if(d["Q15"] != "")
+					{
+						sum= sum + parseFloat(d["Q15"]);
+						count++;
+					}
+				}
+			});
+			if(key == 23603)
+			avg = 30;
+			else
+			avg = sum / count;
+			sumavg= sumavg+avg;
+			trafficrate[key] = avg;			
+			//console.log ( key + " -> "+ trafficrate[key]  );
+		}
+	//	console.log( "sumaverage = " +sumavg/55);
+		//f1(); call load json file
+		NewdataLIHRloaded = true;
+	});
+	
+}
+
+function loadJSONfileandCreateMapsUsing(arg,status) {
+	 if(tempzip)
+		createbar(tempzip,status);
+		
+	d3.json("hr.json", function(error, hr) 
+	{
+			//console.log(hr);
+		var arr = new Array();
+		var i =0;
+		var totlen = hr.objects.zip10.geometries.length;
+		
+		//code that deletes unwanted zip codes from json file
+		for(var code in hr.objects.zip10.geometries)
+		{
+			match=0; 
+			for( var key in arg)
+			{
+				var temp = hr.objects.zip10.geometries[code].properties.name;
+				if(key == temp)
+				{
+					match =1;
+				}
+			}
+			if(!match)
+			{
+				arr[i] = hr.objects.zip10.geometries[code].properties.name;
+				i++;
+			}
+	
+		}
+
+		for( var value in arr)
+		{
+			for(var code in hr.objects.zip10.geometries)
+			{
+				var temp = hr.objects.zip10.geometries[code].properties.name;
+				if(arr[value] == temp)
+				{
+					hr.objects.zip10.geometries.splice(code,1);
+					break;
+				}
+			}	
+		}
+		//end 
+		if(document.getElementById("map1").style.display=="block")
+		{
+			//console.log ("here");
+			svg.selectAll("path")
+				.data(topojson.object(hr, hr.objects.zip10).geometries)
+				.on("click",function(d) {
+					tempzip = d.properties.name;
+					var selected = document.getElementsByClassName("selected-state");
+					if(selected[0])
+						selected[0].setAttribute("class","state " + d.properties.name);
+					var element = document.getElementById(d.properties.name);
+					if(element)
+						element.setAttribute("class", "selected-state");
+					createbar(d.properties.name,status);
+				})
+				.on("mouseover", function(d){ 
+					tooltip.transition()
+							.duration(200)
+							.style("opacity",0.9);
+					tooltip.html("Zip Code:" + d.properties.name + "<br/>" +arg[d.properties.name])
+						.style("left",(d3.event.pageX) + "px")     
+					.style("top", (d3.event.pageY - 28) + "px");    
+				})
+				.on("mouseout", function(d) {       
+				tooltip.transition()        
+					.duration(500)      
+					.style("opacity", 0);   
+				})
+				.transition()
+				.delay(function(d,i) { return  50*i})
+				.duration(100)
+				.style('opacity', 1)
+				.attr("fill",function(d){ 
+								switch(status)
+								{
+									case 0 : color=crimecolor(arg[d.properties.name]);
+									break;
+									case 1 : color=trafficcolor(arg[d.properties.name]);
+									break;
+									case 2 : color=qolcolor(arg[d.properties.name]);
+									break;
+								}
+								//color =  status? trafficcolor(arg[d.properties.name]):crimecolor(arg[d.properties.name]);
+								var code = color.split("#");    
+								if(isHexaColor(code[1]))
+									return color;         
+								else
+									return "#ddc";
+								} );
+				
+			
+		}
+		else
+		{
+			document.getElementById("map1").style.display="block"
+			svg.selectAll(".zip")
+				.data(topojson.object(hr, hr.objects.zip10).geometries)
+				.enter().append("path")
+				.attr("class", function(d) {return "state " + d.properties.name; })
+				.attr("id", function(d) { return d.properties.name;})
+				.style("opacity",0)
+				.attr("fill",function(d){ 
+								switch(status)
+								{
+									case 0 : color=crimecolor(arg[d.properties.name]);
+									break;
+									case 1 : color=trafficcolor(arg[d.properties.name]);
+									break;
+									case 2 : color=qolcolor(arg[d.properties.name]);
+									break;
+								}
+								//color =  status? trafficcolor(arg[d.properties.name]):crimecolor(arg[d.properties.name]);
+								var code = color.split("#");    
+								if(isHexaColor(code[1]))
+									return color;         
+								else
+									return "#ddc";
+								} )
+				.attr("d", path)
+				.on("mouseover", function(d){ 
+					tooltip.transition()
+							.duration(200)
+							.style("opacity",0.9);
+					tooltip.html("Zip Code:" + d.properties.name + "<br/>" +arg[d.properties.name])
+						.style("left",(d3.event.pageX) + "px")     
+					.style("top", (d3.event.pageY - 28) + "px");    
+				})
+				.on("mouseout", function(d) {       
+				tooltip.transition()        
+					.duration(500)      
+					.style("opacity", 0);   
+				})
+				.on("click",function(d) {
+				tempzip = d.properties.name;
+				
+				var selected = document.getElementsByClassName("selected-state");
+					if(selected[0])
+						selected[0].setAttribute("class","state " + d.properties.name);
+				var element = document.getElementById(d.properties.name);
+				if(element)
+					element.setAttribute("class", "selected-state");
+				createbar(d.properties.name,status);
+				})
+				.transition()
+				.delay(function(d,i) { return  50*i})
+				.duration(100)
+				.style('opacity', 1);
+		
+
+			svg.append("path")
+				.datum(topojson.mesh(hr, hr.objects.zip10))
+				.attr("d", path)
+				.attr("class", "state-boundary");
+
+			svg.append("path")
+				.datum(topojson.object(hr, hr.objects.places))
+				.attr("d", path)
+				.attr("class", "place");
+
+			svg.selectAll(".place-label")
+				.data(topojson.object(hr, hr.objects.places).geometries)
+				.enter().append("text")
+				.attr("class", "place-label")
+				.attr("transform", function(d) { return "translate(" + projection(d.coordinates) + ")"; })
+				.attr("x", function(d) { return d.coordinates[0] > -1 ? 6 : -6;})
+				.attr("dy", ".35em")
+				.style("text-anchor", function(d) { return d.coordinates[0] > -1 ? "start" : "end"; })
+				.text(function(d) {return d.properties.name; });
+		}
+
+				
+	});
+}
+
+function createbar(zip,status){ //function that collects data for bar graphs
+	var Q43names = ['Very Satisfied', 'Somewhat Satisfied', 'Somewhat Dissatisfied', 'Very Dissatisfied'],
+	Q17names = ['Extremely concerned', 'Very concerned', 'Somewhat concerned', 'Not very concerned'],
+    Q43 = [0,0,0,0],
+	Q17 = [0,0,0,0]
+	Employment = [0,0,0,0],
+	Employmentnames = ['Full-Time', 'Part-Time' , 'Umemployed' , 'Retired'],
+	QualityofSchool = [0,0,0,0],
+	QualityofSchoolnames = ['Excellent','Good','Fair','Poor'],
+	householdAvg = [0,0,0,0,0],
+	householdAvgNames = ['<10000','10000-40000','40000-70000','70000-100000','>100000'],
+	safeExcercise = [0,0],
+	safeExcerciseNames=['Yes','No'];
+	
+	
+	d3.csv("crimeandtraffic.csv",function(csv)
+	{
+		csv.forEach(function(d)
+		{
+			if(d["Zip"] == zip)
+			{	
+				for(i=0; i< Q43.length;i++){
+					if(d["Q43"] == i+1)
+					{
+						Q43[i]=Q43[i]+1;
+					}
+				}
+				
+				for(i=0; i< Q17.length;i++){
+					if(d["Q17"] == i+1)
+					{
+						Q17[i]=Q17[i]+1;
+					}
+				}
+				
+				for(i=0; i< QualityofSchool.length;i++){
+			
+					if(d["Q8A"] == i+1)
+					{
+						QualityofSchool[i]=QualityofSchool[i]+1;
+					}
+				}
+			
+				for(i=0; i< safeExcercise.length;i++){
+					if(d["Q2"] == i+1)
+					{
+						safeExcercise[i]=safeExcercise[i]+1;
+					}
+				}
+				
+				for(i=0; i< Employment.length;i++){
+					if(d["Q56"] == i+1)
+					{
+						if(i>=3)
+						{
+							Employment[i-1]=Employment[i-1]+1;
+						}
+						else
+						{
+							Employment[i]=Employment[i]+1;
+						}
+					}
+					
+				}
+				
+				switch(parseFloat(d["Q58"])){
+						case 1	:	 householdAvg[0]++;
+									 break;
+						case 2	:
+						case 3	:
+						case 4	: 	householdAvg[1]++;
+									break;
+						case 5	:	
+						case 6	:
+						case 7	:	householdAvg[2]++;
+									break;
+						case 8	:	
+						case 9	:
+						case 10	:	householdAvg[3]++;
+									break;	
+						case 11 :	householdAvg[4]++;
+									break;	
+						default	: 	break;					
+					}
+						
+			}
+		});
+		switch(status)
+		{
+			//safety
+			case 0 	:	plot1(Q43,"#rightpart1",status,Q43names,"Satisfaction with Local Police");
+						plot1(safeExcercise,"#rightpart2",status,safeExcerciseNames,"Do you have safe Places to Excercise");
+						plot1("","#rightpart3","","","");
+						break;
+			//traffic			
+			case 1	: 	plot1(Q17,"#rightpart1",status,Q17names,"Traffic Concern");
+						plot1("","#rightpart2","","","");
+						plot1("","#rightpart3","","","");
+						break;
+			//living
+			case 2	:	plot1(Employment,"#rightpart1",status,Employmentnames,"Employment Stats");
+						plot1(QualityofSchool,"#rightpart2",status,QualityofSchoolnames,"Quality of Schools");
+						plot1(householdAvg,"#rightpart3",status,householdAvgNames,"Average Household Income ");
+						break;
+		}
+		//status? plot1(Q17,"#rightpart1",status,Q17names):plot1(Q43,"#rightpart1",status,Q43names);
+	//	 plot1(Q46,"#rightpart2");
+		 
+	}); 
+}
+
+function redraw(dat,divid,status,names,msg) {//function that redraws bar graph
+	
+	d3.select(divid).select('svg').selectAll('rect')
+		.data(dat)
+		.transition()
+		.delay(function(d) { return  200})
+		.duration(400)    
+		.attr("y", function(d, i) { return i * (25); })
+		.attr("width", function(d) { return (d *6);  })
+		.style("fill", function(d, i){ return colorScale(i); });
+			   
+		d3.select(divid).select('svg').selectAll("text")
+			.data(dat)
+			.transition()
+			.delay(function(d) { return  200})
+			.duration(400)    
+			.text(function(d) {return d;  })
+			.attr("x", function(d) {return  d*6 +124;  })
+			.attr("y", function(d,i) { return i * 25 + (25) / 2  ; })
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "15px")
+			.attr("fill", "white")
+			.attr("text-anchor", "end");
+		
+		d3.select(divid).select('svg').selectAll('g').select('text')
+			.data(names)
+			.transition()
+			.delay(function(d, i) { return  200})
+			.duration(400) 
+			.attr("x", function(d) { return w1/6 ; })
+			.attr("y", function(d, i) { return i * (25) + (25 - barPadding) / 2; })
+			.attr("text-anchor", "end")
+			.attr('font-weight','bolder')
+			.text(String);
+		
+		
+		d3.select(divid).select('h3')
+			.transition()
+			.delay(function(d, i) { return 200})
+			.duration(400) 
+			.text(msg);
+}
+
+function plot1(hotdogs,divid,status,names,msg){  // function that draws bar graphs
+
+	element = document.getElementById(divid.split("#")[1]);
+	if(element && element.style.display=="block")
+	{	
+		var temp =d3.select(divid).select('svg').selectAll('rect');
+		
+		if(temp[0].length == hotdogs.length)
+			redraw(hotdogs,divid,status,names,msg);
+		else
+		{
+			element.removeChild(element.lastChild);
+			element.style.display="none";
+			plot1(hotdogs,divid,status,names,msg);
+		}
+	} 
+	else
+	{
+		divelement= document.getElementById(divid.split("#")[1]);
+		if(divelement)
+			divelement.style.display = "block";
+		
+		var svg1 = d3.select(divid)
+					.append("svg")
+					.attr("width", w1)
+					.attr("height", h1);
+					
+					
+						
+		svg1.selectAll("rect")
+			.data(hotdogs)
+			.enter()
+			.append("rect")
+			.transition()
+			.attr("y", function(d, i) { return i * (25); })
+			.attr("x", function(d) { return  125; }) 
+			.attr("height", 25- 1)
+			.attr("width", function(d) { return (d *6); })
+			.style("fill", function(d, i){ return colorScale(i); });
+			   
+		svg1.selectAll("text")
+			.data(hotdogs)
+			.enter()
+			.append("text")
+			.text(function(d) {return d;  })
+			.attr("x", function(d) {return  d*6 +124;  })
+			.attr("y", function(d,i) { return i * 25 + (25) / 2  ; })
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "10px")
+			.attr("fill", "white")
+			.attr("text-anchor", "end");
+			
+		 svg1.selectAll("span")
+				.data(names)
+				.enter().append('g').append("text")
+
+				.attr("x", function(d) { return w1/6 ; })
+				.attr("y", function(d, i) { return i * (25) + (25 - barPadding) / 2; })
+				.attr("text-anchor", "end")
+				.attr('font-weight','bolder')
+				.text(String);
+			
+		d3.select(divid).select('h3')
+			.transition()
+			.delay(function(d, i) { return i * 300})
+			.duration(500) 
+			.text(msg);
+			
+	}
+}
+
+function Init(){  // function loads all data 
+	loadunQZip();
+	loadValuesIntoCrimeRate();
+	loadValuesIntoZipCodes();
+	loadValuesIntoqolavg();
+}
+	
+function initgraph(element){  
+	if(uniquezipcodesloaded  && crimecsvloaded &&  NewdataLIHRloaded)
+	{
+		var tabs=document.getElementById('tabs').getElementsByTagName("a");
+		for (var i=0; i < tabs.length; i++)
+		{
+			if(tabs[i].id == element.id) 
+				 tabs[i].className="selected";
+			else
+				 tabs[i].className="";
+		}
+
+		if(element.id =="crime")
+			loadJSONfileandCreateMapsUsing(crimerate,0);
+		else if(element.id =="traffic")
+			loadJSONfileandCreateMapsUsing(trafficrate,1);
+		else if(element.id =="life")
+			loadJSONfileandCreateMapsUsing(qolavg,2);
+	}
+	else
+		setTimeout("initgraph(element)",100);	
+
+}
+
+</script>
