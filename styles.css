@@ -1,0 +1,132 @@
+<style>
+
+/* CSS goes here. */
+/*.state { display: none; }*/
+//.state {fill: #ddc; display: inline; }
+
+
+
+.state-boundary {
+	fill: none;
+	stroke: #777;
+//	stroke-dasharray: 2,2;
+	stroke-linejoin: round;
+}
+
+.selected-state {
+stroke: blue;
+stroke-width:3;
+
+}
+
+#header ul li{
+display: inline;
+}
+
+#tabs ul {
+font: normal 14px arial, sans, sans-serif;
+-list-style-type: none;
+border-bottom: 1px solid gray;
+margin: 0;
+padding-left: 0;
+padding-right: 0;
+padding-bottom: 26px;
+}
+ul, menu, dir {
+display: block;
+list-style-type: disc;
+-webkit-margin-before: 1em;
+-webkit-margin-after: 1em;
+-webkit-margin-start: 0px;
+-webkit-margin-end: 0px;
+-webkit-padding-start: 40px;
+}
+#tabs ul li {
+display: inline;
+float: left;
+height: 24px;
+min-width: 80px;
+text-align: center;
+padding: 0;
+margin: 1px 0px 0px 0px;
+border: 1px solid gray;
+}
+#tabs ul li a.selected {
+color: #000;
+font-weight: bold;
+background-color: #fff;
+border-bottom: 1px solid #fff;
+}
+#tabs ul li a {
+float: left;
+color: #666;
+text-decoration: none;
+padding: 4px;
+text-align: center;
+background-color: #eee;
+min-width: 80px;
+border-bottom: 1px solid gray;
+}
+a:-webkit-any-link {
+cursor: auto;
+}
+
+
+
+
+.place,
+.place-label {
+	fill: #444;
+}
+body
+{
+
+}
+
+div.tooltip {   
+  position: absolute;           
+  text-align: center;           
+                 
+  padding: 2px;             
+  font: 12px sans-serif;        
+  background: lightsteelblue;   
+  border: 0px;      
+  border-radius: 8px;           
+  pointer-events: none;         
+}
+
+text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 10px;
+	pointer-events: none;
+}
+
+.subunit-label {
+  fill: #777;
+  fill-opacity: .5;
+  font-size: 6px;
+  font-weight: 300;
+  text-anchor: middle;
+}
+.chart {
+
+  margin: 5px;
+}
+.chart rect {
+  stroke: white;
+  fill: steelblue;
+}
+.chart text {
+  fill: white;
+}
+.chart text.name {
+  fill: #000;
+}
+
+.legend {
+padding: 5px;
+font: 10px sans-serif;
+background: yellow;
+ box-shadow: 2px 2px 1px #888;
+}
+</style>
