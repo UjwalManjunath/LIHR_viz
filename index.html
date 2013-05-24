@@ -46,7 +46,7 @@
 <script src="libs/d3.v2.js"></script>
 <script src="libs/d3.v3.min.js"></script>
 <script src="libs/topojson.v0.min.js"></script>
-<script type="text/javascript" src="colorbrewer.js"></script>
+<script type="text/javascript" src="libs/colorbrewer.js"></script>
 <script>
 
 /* JavaScript goes here. */
@@ -118,7 +118,7 @@ function loadZipsFromFIPS(element){
 }
 
 function loadZipArray(element){
-	d3.csv("uniqueZipCodes.csv",function(csv)
+	d3.csv("data/uniqueZipCodes.csv",function(csv)
 	{
 		csv.forEach(function(d) 
 		{
@@ -162,7 +162,7 @@ function isHexaColor(sNum){ //function checks if color is valid
 }
 
 function loadunQZip() {	 // function laod uniq zip codes into zipcodes & crimeramte object		
-	d3.csv("uniqueZipCodes.csv", function (csv) { 
+	d3.csv("data/uniqueZipCodes.csv", function (csv) { 
 	//console.log(csv);
 	csv.forEach(function(d) {
 					if(d["User_ZIP"]!="") {
@@ -180,7 +180,7 @@ function loadunQZip() {	 // function laod uniq zip codes into zipcodes & crimera
 }
 
 function loadValuesIntoCrimeRate() { //loads values into crimerates object for each zip
-	d3.csv("crimeandtraffic.csv",function(csv)
+	d3.csv("data/crimeandtraffic.csv",function(csv)
 	{
 		
 		for( var key in crimerate)
@@ -214,7 +214,7 @@ function loadValuesIntoCrimeRate() { //loads values into crimerates object for e
 }
 
 function loadValuesIntoqolavg() { //loads values into qolavg object for each zip
-	d3.csv("crimeandtraffic.csv",function(csv)
+	d3.csv("data/crimeandtraffic.csv",function(csv)
 	{
 		
 		for( var key in qolavg)
@@ -251,7 +251,7 @@ function loadValuesIntoqolavg() { //loads values into qolavg object for each zip
 }
 
 function loadValuesIntoZipCodes()  { //loades values into zipcodes object
-	d3.csv("New_data_LIHR.csv",function(csv)
+	d3.csv("data/New_data_LIHR.csv",function(csv)
 	{
 		var sumavg=0;
 		for( var key in trafficrate)
@@ -298,7 +298,7 @@ function loadJSONfileandCreateMapsUsing(arg,status) {
 						break;
 	}
 	
-	d3.json("hr.json", function(error, hr) 
+	d3.json("data/hr.json", function(error, hr) 
 	{
 			//console.log(hr);
 		var arr = new Array();
@@ -526,7 +526,7 @@ function createbar(zip,status){ //function that collects data for bar graphs
 	schoolSafetyNames= ['Very Safe', 'Somewhat Safe', 'Not Very Safe','Not at all Safe'];
 	
 	
-	d3.csv("crimeandtraffic.csv",function(csv)
+	d3.csv("data/crimeandtraffic.csv",function(csv)
 	{
 		csv.forEach(function(d)
 		{
